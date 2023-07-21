@@ -1,7 +1,6 @@
 import ImageGalleryItem from 'components/ImageGalleryItem';
 import { Gallery } from './ImageGallery.styled';
 
-
 const ImageGallery = ({ items }) => {
   return (
     <Gallery>
@@ -19,4 +18,8 @@ const ImageGallery = ({ items }) => {
 };
 
 export default ImageGallery;
+
+
+
+
 

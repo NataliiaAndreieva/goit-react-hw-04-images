@@ -1,5 +1,5 @@
-import { ToastContainer, toast } from 'react-toastify';
-import React, { Component } from "react";
+import React, { useEffect, useState } from 'react';
+import Notiflix from 'notiflix';
 
 import  Searchbar  from 'components/Searchbar';
 import ImageGallery from "components/ImageGallery";
@@ -8,102 +8,97 @@ import Loader from 'components/Loader';
 
 import fetchImg from '../services/apiGallery';
 
-import { AppContainer } from './App.styled.js';
+import { AppContainer, Message } from './App.styled.js';
 
-export default class App extends Component {
-  state = {
-    query: '',
-    items: [],
-    page: 1,
-    status: 'idle',
-    totalHits: 0,
-  };
+const App = () => {
+  const [query, setQuery] = useState('');
+  const [items, setItems] = useState([]);
+  const [page, setPage] = useState(1);
+  const [status, setStatus] = useState('idle');
+  const [totalHits, setTotalHits] = useState(0);
 
-  componentDidUpdate = async (_, prevState) => {
-    const { page, query } = this.state;
-    if (page !== prevState.page || query !== prevState.query) {
-      this.fetchImages();
-    }
-  };
-
-  handleSubmit = async query => {
-    this.setState({
-      items: [],
-      query,
-      totalHits: 0,
-      page: 1,
-    });
-  };
-
-  loadMore = async () => {
-    this.setState(prevState => ({
-      page: prevState.page + 1,
-    }));
-  };
-
-  fetchImages = async () => {
-    const { query, page } = this.state;
-    this.setState({ status: 'pending' });
-    try {
-      const { totalHits, hits } = await fetchImg(query, page);
-      console.log(hits);
-      if (!totalHits) {
-        this.setState({ status: 'idle' });
-        return toast.warn(
-          'Sorry, there are no images matching your search query. Please try again'
-        );
+  useEffect(() => {
+    if (!query)
+      return;
+    const fetchImages = async () => {
+      try {
+        setStatus('pending');
+        const { totalHits, hits } = await fetchImg(query, page);
+        if (!totalHits) {
+          setStatus('idle');
+          Notiflix.Notify.failure(
+            'Sorry, there are no images matching your search query. Please try again'
+          );
+          return;
+        }
+        const images = hits.map(hit => ({
+          id: hit.id,
+          webformatURL: hit.webformatURL,
+          largeImageURL: hit.largeImageURL,
+          tags: hit.tags,
+        }));
+        setItems(prevItem => [...prevItem, ...images]);
+        setStatus('resolved');
+        setTotalHits(totalHits);
       }
-
-      this.setState(prevState => ({
-        items: [...prevState.items, ...hits],
-        status: 'resolved',
-        totalHits: totalHits,
-      }));
-    } catch (error) {
-      this.setState({ status: 'rejected' });
-    }
+      catch (error) {
+        setStatus('rejected');
+      }
+    };
     
+    fetchImages();
+
+  }, [page, query]);
+
+ const handleSubmit = query => {
+   setItems([]);
+   setQuery(query);
+   setTotalHits(0);
+   setPage(1);
   };
- 
-  render() {
-    const { items, page, status, totalHits } = this.state;
+
+  const loadMore = () => {
+    setPage(prevPage => prevPage + 1);
+  };
 
     if (status === 'idle') {
       return (
         <AppContainer>
-          <Searchbar onSubmit={this.handleSubmit} />
+          <Searchbar onSubmit={handleSubmit} />
         </AppContainer>
       );
     }
     if (status === 'pending') {
       return (
         <AppContainer>
-          <Searchbar onSubmit={this.handleSubmit} />
+          <Searchbar onSubmit={handleSubmit} />
           <ImageGallery page={page} items={items} />
        <Loader />
         </AppContainer>
       );
-    }
-
-    if (status === 'rejected') {
-      return (
-        <AppContainer>
-          <Searchbar onSubmit={this.handleSubmit} />
-          <ImageGallery page={page} items={items} />
-          {toast.error('An error occurred. Please try again later.')}
-        </AppContainer>
-      );
-    }
+  }
+  
+   if (status === 'rejected') {
+     return (
+       <AppContainer>
+         <Searchbar onSubmit={handleSubmit} />
+         <Message>Щось пішло не так</Message>
+       </AppContainer>
+     );
+   }
+   
     if (status === 'resolved') {
       return (
         <AppContainer>
-          <Searchbar onSubmit={this.handleSubmit} />
+          <Searchbar onSubmit={handleSubmit} />
           <ImageGallery page={page} items={items} />
-          {totalHits && items.length && <Button onClick={this.loadMore} />}
-          <ToastContainer autoClose={4000} />
+          {totalHits && items.length && <Button onClick={loadMore} />}
         </AppContainer>
       );
-    }
   }
+
 };
+
+export default App;
+
 
