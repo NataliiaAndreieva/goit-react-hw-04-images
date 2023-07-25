@@ -92,7 +92,7 @@ const App = () => {
         <AppContainer>
           <Searchbar onSubmit={handleSubmit} />
           <ImageGallery page={page} items={items} />
-          {totalHits && items.length && <Button onClick={loadMore} />}
+          {totalHits !== items.length && <Button onClick={loadMore} />}
         </AppContainer>
       );
   }
